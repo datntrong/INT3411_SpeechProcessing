@@ -7,11 +7,16 @@ import numpy as np
 # loadmodels
 import pickle
 class_names = ['xuong', 'len', 'phai', 'trai', 'nhay', 'ban', 'a', 'b']
-model = {}
+model_hmm = {}
 for key in class_names:
-    name = f"models_train/model_{key}.pkl"
+    name = f"models_hmm/model_{key}.pkl"
     with open(name, 'rb') as file:
-        model[key] = pickle.load(file)
+        model_hmm[key] = pickle.load(file)
+models_template_dtw = {}
+for key in class_names:
+    name = f"models_template_dtw/model_{key}.pkl"
+    with open(name, 'rb') as file:
+        models_template_dtw[key] = pickle.load(file)
 
 
 def extract_mfcc_features(file_path, n_mfcc):
@@ -28,17 +33,18 @@ def extract_mfcc_features(file_path, n_mfcc):
         y=sound, sr=sr, n_mfcc=n_mfcc, n_fft=1024,
         hop_length=hop_length, win_length=win_length)
 
-    delta_mfcc = librosa.feature.delta(mfcc)
+    #     min_features = np.min(mfcc, axis=0)
+    #     max_features = np.max(mfcc, axis=0)
+    #     mfcc = (mfcc - min_features) / (max_features - min_features)
+
+    mfcc = np.subtract(mfcc, np.mean(mfcc))
+    delta_mfcc = librosa.feature.delta(mfcc, width=9)
     delta2_mfcc = librosa.feature.delta(mfcc, order=2)
 
     # chuẩn hoá
     mfcc_features = np.concatenate((mfcc, delta_mfcc, delta2_mfcc)).T
-    min_features = np.min(mfcc_features, axis=0)
-    max_features = np.max(mfcc_features, axis=0)
-    mfcc_features_nom = (mfcc_features - min_features) / (max_features - min_features)
 
-    return mfcc_features_nom
-
+    return mfcc_features
 def record():
     filename = "audio.wav"
 
@@ -67,10 +73,10 @@ def play(filepath):
     status = sd.wait()
 
 
-def predict(filepath):
+def predict(filepath, model):
 
     #Predict
-    record_mfcc = extract_mfcc_features(filepath, 13)
+    record_mfcc = extract_mfcc_features(filepath,13)
 
     scores = [model[cname].score(record_mfcc) for cname in class_names]
     # print(scores)
