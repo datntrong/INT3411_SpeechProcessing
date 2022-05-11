@@ -6,7 +6,7 @@ import numpy as np
 
 # loadmodels
 import pickle
-class_names = ['xuong', 'len', 'phai', 'trai', 'nhay', 'ban', 'a', 'b']
+class_names = ['xuong', 'len', 'phai', 'trai', 'nhay', 'ban', 'a', 'b','sil']
 model_hmm = {}
 for key in class_names:
     name = f"models_hmm/model_{key}.pkl"
@@ -73,17 +73,28 @@ def play(filepath):
     status = sd.wait()
 
 
-def predict(filepath, model):
+def predict(filepath):
 
     #Predict
     record_mfcc = extract_mfcc_features(filepath,13)
 
-    scores = [model[cname].score(record_mfcc) for cname in class_names]
+    scores = [model_hmm[cname].score(record_mfcc) for cname in class_names]
     # print(scores)
     predict_word = np.argmax(scores)
-    print('Ket qua cua tu vua noi la : ',end='')
+    print('Ket qua cua tu vua noi theo hmm model la : ',end='')
     print(class_names[predict_word])
 
+def predict_dtw(filepath):
+    step_sizes_sigma = np.array([[1, 1], [1, 0], [1, 2]])
+    mfccs_features = extract_mfcc_features(filepath, 13)
+    cost = {}
+    for cname in class_names:
+        D, wp = librosa.sequence.dtw(mfccs_features.T, models_template_dtw[cname].T, step_sizes_sigma=step_sizes_sigma)
+        cost[cname] = D[mfccs_features.T.shape[1] - 1][models_template_dtw[cname].T.shape[1] - 1]
+
+    pred = min(cost, key=lambda k: cost[k])
+    print('Ket qua cua tu vua noi theo dtw model la : ', end='')
+    print(pred)
 if __name__ == '__main__':
     print(
         'Nhap 1 de record\nNhap 2 de play am thanh vua record\nNhap 0 de thoat chuong trinh\nNhap 3 de predict doan am thanh vua ghi\n'
