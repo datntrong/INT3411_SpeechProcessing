@@ -14,26 +14,30 @@ for key in class_names:
         model[key] = pickle.load(file)
 
 
-def get_mfcc(file_path):
-    y, sr = librosa.load(file_path) # read .wav file
+def extract_mfcc_features(file_path, n_mfcc):
+    # load file âm thanh
+    sound, sr = librosa.load(file_path)
+
+    # trích xuất đặc trưng
 
     hop_length = 256
 
     win_length = 512
     # mfcc is 13 x T matrix
     mfcc = librosa.feature.mfcc(
-        y=y, sr=sr, n_mfcc=13, n_fft=1024,
+        y=sound, sr=sr, n_mfcc=n_mfcc, n_fft=1024,
         hop_length=hop_length, win_length=win_length)
-    # substract mean from mfcc --> normalize mfcc
 
-    mfcc = np.subtract(mfcc,np.mean(mfcc))
-    # delta feature 1st order and 2nd order
-    delta1 = librosa.feature.delta(mfcc)
-    delta2 = librosa.feature.delta(mfcc, order=2)
-    # X is 39 x T
-    X = np.concatenate([mfcc, delta1, delta2], axis=0) # O^r
-    # return T x 39 (transpose of X)
-    return X.T # hmmlearn use T x N matrix
+    delta_mfcc = librosa.feature.delta(mfcc)
+    delta2_mfcc = librosa.feature.delta(mfcc, order=2)
+
+    # chuẩn hoá
+    mfcc_features = np.concatenate((mfcc, delta_mfcc, delta2_mfcc)).T
+    min_features = np.min(mfcc_features, axis=0)
+    max_features = np.max(mfcc_features, axis=0)
+    mfcc_features_nom = (mfcc_features - min_features) / (max_features - min_features)
+
+    return mfcc_features_nom
 
 def record():
     filename = "audio.wav"
@@ -66,7 +70,7 @@ def play(filepath):
 def predict(filepath):
 
     #Predict
-    record_mfcc = get_mfcc(filepath)
+    record_mfcc = extract_mfcc_features(filepath, 13)
 
     scores = [model[cname].score(record_mfcc) for cname in class_names]
     # print(scores)
