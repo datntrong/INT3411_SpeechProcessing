@@ -12,5 +12,5 @@
     2. Demo về chương trình https://youtu.be/tbaqazYiDkM
 
 
-
+Full code & data : https://www.kaggle.com/code/datntrong/speechprocessing
 
